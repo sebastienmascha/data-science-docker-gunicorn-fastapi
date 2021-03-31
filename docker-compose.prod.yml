@@ -14,3 +14,24 @@ services:
       - ./backend/.env_production
     ports:
       - "80:80"
+
+  frontend:
+    build: frontend
+    depends_on:
+      - backend
+    volumes:
+        - ./storage:/storage
+
+
+#     labels:
+#       - "traefik.enable=true"
+#       - "traefik.http.routers.hr_api.rule=Host(`hr-api.smascha.ai`)"
+#       - "traefik.http.routers.hr_api.entrypoints=websecure"
+#       - "traefik.http.routers.hr_api.tls.certresolver=mytlschallenge"
+#     networks:
+#       - proxy
+#     restart: always
+
+# networks:
+#   proxy:
+#     external: true

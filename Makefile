@@ -1,11 +1,18 @@
-run-dev:
+
+build:
+	docker-compose build
+up:
 	docker-compose up -d
 
-run-prod:
-	docker-compose -f docker-compose.prod.yml up -d
-
-rm-dev:
+down:
 	docker-compose down
 
-rm-prod:
+restart:
+	make build
+	make down
+	make up
+
+deploy:
+	docker-compose -f docker-compose.prod.yml build
 	docker-compose -f docker-compose.prod.yml down
+	docker-compose -f docker-compose.prod.yml up -d

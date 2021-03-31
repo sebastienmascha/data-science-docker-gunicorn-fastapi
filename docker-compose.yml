@@ -22,3 +22,10 @@ services:
     command: 
       /start-reload.sh
       # jupyter lab --ip=0.0.0.0 --allow-root --NotebookApp.custom_display_url=http://127.0.0.1:8888
+
+  frontend:
+    build: frontend
+    depends_on:
+      - backend
+    volumes:
+        - ./storage:/storage
