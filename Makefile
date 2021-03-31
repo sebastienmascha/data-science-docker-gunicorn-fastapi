@@ -1,11 +1,11 @@
-build:
-	docker build -f python-gunicorn-fastapi.dockerfile -t python-gunicorn-fastapi .
-
 run-dev:
-	docker run -d --name python_gunicorn_fastapi -p 80:80 -v $(PWD)/app:/app python-gunicorn-fastapi /start-reload.sh
+	docker-compose -d up
 
 run-prod:
-	docker run -d --name python_gunicorn_fastapi -p 80:80 python-gunicorn-fastapi
+	docker-compose -d -f docker-compose.prod.yml up
 
-rm:
-	docker rm -f python_gunicorn_fastapi
+rm-dev:
+	docker-compose down
+
+rm-prod:
+	docker-compose -f docker-compose.prod.yml down

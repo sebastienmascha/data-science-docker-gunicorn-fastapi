@@ -2,7 +2,6 @@ image: tiangolo/docker-with-compose
 
 before_script:
   - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN $CI_REGISTRY
-  - pip install docker-auto-labels
 
 stages:
   - test
@@ -13,16 +12,6 @@ tests:
   stage: test
   script:
     - sh ./scripts/test.sh
-  tags:
-    - build
-    - test
-
-build-stag:
-  stage: build
-  script:
-    - TAG=stag FRONTEND_ENV=staging sh ./scripts/build-push.sh
-  only:
-    - master
   tags:
     - build
     - test

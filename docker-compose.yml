@@ -2,8 +2,8 @@ version: "3.7"
 services:
 
   python:       
-    container_name: python_gunicorn_fastapi
-    image: smascha/python-gunicorn-fastapi:development
+    container_name: python_uvicorn_fastapi_dev
+    image: smascha/python-uvicorn-fastapi:development
     build:
       context: ./backend
       dockerfile: backend.dockerfile
