@@ -11,7 +11,7 @@ router = APIRouter()
 @router.get("/")
 async def read_my_endpoint_root():
     version = f"{sys.version_info.major}.{sys.version_info.minor}"
-    message = f"Hello from Seb! From FastAPI running on Uvicorn with Gunicorn. Using Python {version}"
+    message = f"Hello from Seb! FastAPI is running on Uvicorn with Gunicorn. Using Python {version}"
     return {"message": message}
 
 
