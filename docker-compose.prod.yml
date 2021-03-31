@@ -10,6 +10,7 @@ services:
       args:
         YOUR_ENV: 'production'
     env_file:
+      - ./backend/.env
       - ./backend/.env_production
     ports:
       - "80:80"

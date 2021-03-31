@@ -10,6 +10,7 @@ services:
       args:
         YOUR_ENV: 'development'
     env_file:
+      - ./backend/.env
       - ./backend/.env_development
     volumes:
       - ./backend/app:/app

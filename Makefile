@@ -1,8 +1,8 @@
 run-dev:
-	docker-compose -d up
+	docker-compose up -d
 
 run-prod:
-	docker-compose -d -f docker-compose.prod.yml up
+	docker-compose -f docker-compose.prod.yml up -d
 
 rm-dev:
 	docker-compose down

@@ -1,16 +1,16 @@
-from typing import Any, List
+import sys
+from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from fastapi import APIRouter
 
-from app import crud, models, schemas
-from app.api import deps
+from app import schemas
 
 router = APIRouter()
 
 
 @router.get("/")
 async def read_my_endpoint_root():
+    version = f"{sys.version_info.major}.{sys.version_info.minor}"
     message = f"Hello from Seb! From FastAPI running on Uvicorn with Gunicorn. Using Python {version}"
     return {"message": message}
 
@@ -19,12 +19,9 @@ async def read_my_endpoint_root():
 @router.post("/", response_model=schemas.Item)
 def create_item(
     *,
-    db: Session = Depends(deps.get_db),
-    item_in: schemas.ItemCreate,
-    current_user: models.User = Depends(deps.get_current_active_user),
+    item: schemas.Item,
 ) -> Any:
     """
     Create new item.
     """
-    item = crud.item.create_with_owner(db=db, obj_in=item_in, owner_id=current_user.id)
     return item
