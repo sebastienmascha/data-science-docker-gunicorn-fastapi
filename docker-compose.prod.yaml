@@ -1,0 +1,15 @@
+version: "3.7"
+services:
+
+  python:       
+    container_name: python_gunicorn_fastapi_prod
+    image: smascha/python-uvicorn-fastapi:production
+    build:
+      context: ./backend
+      dockerfile: backend.dockerfile
+      args:
+        YOUR_ENV: 'production'
+    env_file:
+      - ./backend/.env_production
+    ports:
+      - "80:80"

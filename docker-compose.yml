@@ -1,0 +1,23 @@
+version: "3.7"
+services:
+
+  python:       
+    container_name: python_gunicorn_fastapi
+    image: smascha/python-gunicorn-fastapi:development
+    build:
+      context: ./backend
+      dockerfile: backend.dockerfile
+      args:
+        YOUR_ENV: 'development'
+    env_file:
+      - ./backend/.env_development
+    volumes:
+      - ./backend/app:/app
+    ports:
+      - "80:80"
+      - "8888:8888"
+    environment:
+      - JUPYTER=jupyter lab --ip=0.0.0.0 --allow-root --NotebookApp.custom_display_url=http://127.0.0.1:8888
+    command: 
+      /start-reload.sh
+      # jupyter lab --ip=0.0.0.0 --allow-root --NotebookApp.custom_display_url=http://127.0.0.1:8888
