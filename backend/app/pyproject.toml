@@ -5,7 +5,7 @@ description = "Python with Uvicorn and Gunicorn"
 authors = ["Sebastien Mascha <sebastien.mascha@gmail.com>"]
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = ">=3.9,<3.10"
 uvicorn = {extras = ["standard"], version = "^0.13.4"}
 fastapi = "^0.63.0"
 requests = "^2.25.1"
