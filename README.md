@@ -1,21 +1,78 @@
-# Python with Gunicorn and FastAPI
+# Full-Stack Python workstation based on Docker
+
+[**Docker**](https://www.docker.com/) image with [**Uvicorn**](https://www.uvicorn.org/) managed by [**Gunicorn**](https://gunicorn.org/) for high-performance [**FastAPI**](https://fastapi.tiangolo.com/) web applications in **[Python](https://www.python.org/) 3.8** with performance auto-tuning.
+
+GitHub repo: [https://github.com/sebastienmascha/data-science-docker-gunicorn-fastapi](https://github.com/sebastienmascha/data-science-docker-gunicorn-fastapi)
+
+Docker Hub image: [https://hub.docker.com/r/smascha/python-uvicorn-fastapi/](https://hub.docker.com/r/smascha/python-uvicorn-fastapi/)
 
 ## Features
-- Development with auto-reload 
-- Devlopment with Jupyter Lab: `jupyter lab --ip=0.0.0.0 --allow-root --NotebookApp.custom_display_url=http://127.0.0.1:8888`
-- Production with Gunicorn and Uvicorn workers respecting to your machine CPU and RAM info
-- [Poetry](https://python-poetry.org/) for Python package and environment management.
+- **Development** with auto-reload 
+- **Development** with [Jupyter Lab](https://jupyter.org/): `jupyter lab --ip=0.0.0.0 --allow-root --NotebookApp.custom_display_url=http://127.0.0.1:8888`
+- **Production** with [Gunicorn](https://gunicorn.org/) and [Uvicorn](https://www.uvicorn.org/) workers respecting to your machine CPU and RAM info
+- [Poetry](https://python-poetry.org/) for **Python packages** and **environment** management.
 
 ## Requirements
 
 * [Docker](https://www.docker.com/).
 * [Docker Compose](https://docs.docker.com/compose/install/).
 
-## Backend local development, additional details
+## Table of Contents
 
-### General workflow
+- [Description](#description)
+- [Get Started - Local Development](#get-started---local-development)
+  - [Local Python with Poetry](#local-python-with-poetry)
+  - [Docker Compose for Development](#docker-compose-for-development)
+    - [Development live reload](#development-live-reload)
+    - [Live development with Python Jupyter Notebooks](#live-development-with-python-jupyter-notebooks)
+  - [Backend tests](#backend-tests)
+- [Get Started - Production](#get-started---production)
+  - [Docker Compose for Production](#docker-compose-for-production)
+  - [Custom Gunicorn configuration file](#custom-gunicorn-configuration-file)
+  - [Custom `/app/prestart.sh`](#custom-appprestartsh)
+  - [Environment variables](#environment-variables)
+- [License](#license)
+
+
+# Description
+
+### Uvicorn
+
+**Uvicorn** is a lightning-fast "ASGI" server.
+
+It runs asynchronous Python web code in a single process.
+
+### Gunicorn
+
+You can use **Gunicorn** to manage Uvicorn and run multiple of these concurrent processes.
+
+That way, you get the best of concurrency and parallelism.
+
+### FastAPI
+
+FastAPI is a modern, fast (high-performance), web framework for building APIs with Python 3.6+.
+
+The key features are:
+
+* **Fast**: Very high performance production-ready Python framework, on par with **NodeJS** and **Go** (thanks to Starlette and Pydantic).
+* **Less bugs**: Reduce about 40% of human (developer) induced errors. *
+* **Intuitive**: Great editor support. <abbr title="also known as auto-complete, autocompletion, IntelliSense">Completion</abbr> everywhere. Less time debugging.
+* **Standards-based**: Based on (and fully compatible with) the open standards for APIs: <a href="https://github.com/OAI/OpenAPI-Specification" target="_blank">OpenAPI</a> (previously known as Swagger) and <a href="http://json-schema.org/" target="_blank">JSON Schema</a>.
+
+**Note**: FastAPI is based on Starlette and adds several features on top of it. Useful for APIs and other cases: data validation, data conversion, documentation with OpenAPI, dependency injection, security/authentication and others.
+
+
+# Get Started - Local Development
+
+## Local Python with Poetry
 
 By default, the dependencies are managed with [Poetry](https://python-poetry.org/), go there and install it.
+
+Configuring poetry to create venv directories inside the project:
+
+```console
+poetry config virtualenvs.in-project true
+```
 
 From `./backend/app/` you can install all the dependencies with:
 
@@ -26,22 +83,25 @@ $ poetry install
 Then you can start a shell session with the new environment with:
 
 ```console
-$ poetry shell
+$ poetry shell 
+```
+
+Then run the Python App or Jupyter Lab
+```console
+$ set -o allexport; source .env; source .env_development; set +o allexport  # To check for .env file
+$ sh ../start-reload.sh  # Python App
+$ jupyter lab  # Jupyter Lab
 ```
 
 Next, open your editor at `./backend/app/` (instead of the project root: `./`), so that you see an `./app/` directory with your code inside. That way, your editor will be able to find all the imports, etc. Make sure your editor uses the environment you just created with Poetry.
 
 Modify or add SQLAlchemy models in `./backend/app/app/models/`, Pydantic schemas in `./backend/app/app/schemas/`, API endpoints in `./backend/app/app/api/`, CRUD (Create, Read, Update, Delete) utils in `./backend/app/app/crud/`. The easiest might be to copy the ones for Items (models, endpoints, and CRUD utils) and update them to your needs.
 
-Add and modify tasks to the Celery worker in `./backend/app/app/worker.py`.
+## Docker Compose for Developement
 
-If you need to install any additional package to the worker, add it to the file `./backend/app/celeryworker.dockerfile`.
+During development, you can change Docker Compose settings that will only affect the local development environment, in the file `docker-compose.yml`.
 
-### Docker Compose Override
-
-During development, you can change Docker Compose settings that will only affect the local development environment, in the file `docker-compose.override.yml`.
-
-The changes to that file only affect the local development environment, not the production environment. So, you can add "temporary" changes that help the development workflow.
+The changes to that file only affect the local development environment, not the production environment. So, you can add "temporary" changes that help the development workflow (add environment variable, etc...).
 
 For example, the directory with the backend code is mounted as a Docker "host volume", mapping the code you change live to the directory inside the container. That allows you to test your changes right away, without having to build the Docker image again. It should only be done during development, for production, you should build the Docker image with a recent version of the backend code. But during development, it allows you to iterate very fast.
 
@@ -51,15 +111,7 @@ There is also a command override that runs `/start-reload.sh` (included in the b
 $ docker-compose up -d
 ```
 
-There is also a commented out `command` override, you can uncomment it and comment the default one. It makes the backend container run a process that does "nothing", but keeps the container alive. That allows you to get inside your running container and execute commands inside, for example a Python interpreter to test installed dependencies, or start the development server that reloads when it detects changes, or start a Jupyter Notebook session.
-
 To get inside the container with a `bash` session you can start the stack with:
-
-```console
-$ docker-compose up -d
-```
-
-and then `exec` inside the running container:
 
 ```console
 $ docker-compose exec backend bash
@@ -79,83 +131,61 @@ There you can use the script `/start-reload.sh` to run the debug live reloading 
 $ bash /start-reload.sh
 ```
 
-...it will look like:
+That runs the live reloading server that auto reloads when it detects code changes.
 
-```console
-root@7f2607af31c3:/app# bash /start-reload.sh
-```
 
-and then hit enter. That runs the live reloading server that auto reloads when it detects code changes.
+Now you can go to <a href="http://192.168.99.100/docs" target="_blank">http://192.168.99.100/docs</a> or <a href="http://127.0.0.1/docs" target="_blank">http://127.0.0.1/docs</a> (or equivalent, using your Docker host). Alternative: <a href="http://192.168.99.100/redoc" target="_blank">http://192.168.99.100/redoc</a>
 
-Nevertheless, if it doesn't detect a change but a syntax error, it will just stop with an error. But as the container is still alive and you are in a Bash session, you can quickly restart it after fixing the error, running the same command ("up arrow" and "Enter").
+You will see the automatic interactive API documentation (provided by <a href="https://github.com/swagger-api/swagger-ui" target="_blank">Swagger UI</a>):
 
-...this previous detail is what makes it useful to have the container alive doing nothing and then, in a Bash session, make it run the live reload server.
+![Swagger UI](https://fastapi.tiangolo.com/img/index/index-01-swagger-ui-simple.png)
 
-### Backend tests
+### Development live reload
 
-To test the backend run:
+#### Description
 
-```console
-$ DOMAIN=backend sh ./scripts/test.sh
-```
+For development, it's useful to be able to mount the contents of the application code inside of the container as a Docker "host volume", to be able to change the code and test it live, without having to build the image every time.
 
-The file `./scripts/test.sh` has the commands to generate a testing `docker-stack.yml` file, start the stack and test it.
+In that case, it's also useful to run the server with live auto-reload, so that it re-starts automatically at every code change.
 
-The tests run with Pytest, modify and add tests to `./backend/app/app/tests/`.
+The additional script `/start-reload.sh` runs Uvicorn alone (without Gunicorn) and in a single process.
 
-If you use GitLab CI the tests will run automatically.
+#### Usage
 
-#### Local tests
-
-Start the stack with this command:
-
-```Bash
-DOMAIN=backend sh ./scripts/test-local.sh
-```
-The `./backend/app` directory is mounted as a "host volume" inside the docker container (set in the file `docker-compose.dev.volumes.yml`).
-You can rerun the test on live code:
-
-```Bash
-docker-compose exec backend /app/tests-start.sh
-```
-
-#### Test running stack
-
-If your stack is already up and you just want to run the tests, you can use:
+For example, instead of running:
 
 ```bash
-docker-compose exec backend /app/tests-start.sh
+docker run -d -p 80:80 myimage
 ```
 
-That `/app/tests-start.sh` script just calls `pytest` after making sure that the rest of the stack is running. If you need to pass extra arguments to `pytest`, you can pass them to that command and they will be forwarded.
-
-For example, to stop on first error:
+You could run:
 
 ```bash
-docker-compose exec backend bash /app/tests-start.sh -x
+docker run -d -p 80:80 -v $(pwd):/app myimage /start-reload.sh
 ```
 
-#### Test Coverage
+* `-v $(pwd):/app`: means that the directory `$(pwd)` should be mounted as a volume inside of the container at `/app`.
+    * `$(pwd)`: runs `pwd` ("print working directory") and puts it as part of the string.
+* `/start-reload.sh`: adding something (like `/start-reload.sh`) at the end of the command, replaces the default "command" with this one. In this case, it replaces the default (`/start.sh`) with the development alternative `/start-reload.sh`.
 
-Because the test scripts forward arguments to `pytest`, you can enable test coverage HTML report generation by passing `--cov-report=html`.
+#### Environment Variables
 
-To run the local tests with coverage HTML reports:
+As `/start-reload.sh` doesn't run with Gunicorn, any of the configurations you put in a `gunicorn_conf.py` file won't apply.
 
-```Bash
-DOMAIN=backend sh ./scripts/test-local.sh --cov-report=html
-```
+But these environment variables will work the same as described above:
 
-To run the tests in a running stack with coverage HTML reports:
-
-```bash
-docker-compose exec backend bash /app/tests-start.sh --cov-report=html
-```
+* `MODULE_NAME`
+* `VARIABLE_NAME`
+* `APP_MODULE`
+* `HOST`
+* `PORT`
+* `LOG_LEVEL`
 
 ### Live development with Python Jupyter Notebooks
 
 If you know about Python [Jupyter Notebooks](http://jupyter.org/), you can take advantage of them during local development.
 
-The `docker-compose.override.yml` file sends a variable `env` with a value `dev` to the build process of the Docker image (during local development) and the `Dockerfile` has steps to then install and configure Jupyter inside your Docker container.
+The `docker-compose.yml` file sends a variable `env` with a value `dev` to the build process of the Docker image (during local development) and the `Dockerfile` has steps to then install and configure Jupyter inside your Docker container.
 
 So, you can enter into the running Docker container:
 
@@ -179,266 +209,146 @@ root@73e0ec1f1ae6:/app# $JUPYTER
 
     Copy/paste this URL into your browser when you connect for the first time,
     to login with a token:
-        http://(73e0ec1f1ae6 or 127.0.0.1):8888/?token=f20939a41524d021fbfc62b31be8ea4dd9232913476f4397
+        http://localhost:8888/token=f20939a41524d021fbfc62b31be8ea4dd9232913476f4397
 ```
-
-you can copy that URL and modify the "host" to be `localhost` or the domain you are using for development (e.g. `local.dockertoolbox.tiangolo.com`), in the case above, it would be, e.g.:
-
-```
-http://localhost:8888/token=f20939a41524d021fbfc62b31be8ea4dd9232913476f4397
-```
-
- and then open it in your browser.
 
 You will have a full Jupyter Notebook running inside your container that has direct access to your database by the container name (`db`), etc. So, you can just run sections of your backend code directly, for example with [VS Code Python Jupyter Interactive Window](https://code.visualstudio.com/docs/python/jupyter-support-py) or [Hydrogen](https://github.com/nteract/hydrogen).
 
 
-# Docs
+## Backend tests
 
-[![Test](https://github.com/tiangolo/uvicorn-gunicorn-fastapi-docker/workflows/Test/badge.svg)](https://github.com/tiangolo/uvicorn-gunicorn-fastapi-docker/actions?query=workflow%3ATest) [![Deploy](https://github.com/tiangolo/uvicorn-gunicorn-fastapi-docker/workflows/Deploy/badge.svg)](https://github.com/tiangolo/uvicorn-gunicorn-fastapi-docker/actions?query=workflow%3ADeploy)
+To test the backend run:
 
-## Supported tags and respective `Dockerfile` links
-
-* [`python3.8`, `latest` _(Dockerfile)_](https://github.com/tiangolo/uvicorn-gunicorn-fastapi-docker/blob/master/docker-images/python3.8.dockerfile)
-* [`python3.7`, _(Dockerfile)_](https://github.com/tiangolo/uvicorn-gunicorn-fastapi-docker/blob/master/docker-images/python3.7.dockerfile)
-* [`python3.6` _(Dockerfile)_](https://github.com/tiangolo/uvicorn-gunicorn-fastapi-docker/blob/master/docker-images/python3.6.dockerfile)
-* [`python3.8-slim` _(Dockerfile)_](https://github.com/tiangolo/uvicorn-gunicorn-fastapi-docker/blob/master/docker-images/python3.8-slim.dockerfile)
-* [`python3.8-alpine3.10` _(Dockerfile)_](https://github.com/tiangolo/uvicorn-gunicorn-fastapi-docker/blob/master/docker-images/python3.8-alpine3.10.dockerfile)
-* [`python3.7-alpine3.8` _(Dockerfile)_](https://github.com/tiangolo/uvicorn-gunicorn-fastapi-docker/blob/master/docker-images/python3.7-alpine3.8.dockerfile)
-* [`python3.6-alpine3.8` _(Dockerfile)_](https://github.com/tiangolo/uvicorn-gunicorn-fastapi-docker/blob/master/docker-images/python3.6-alpine3.8.dockerfile)
-
-
-**Note**: Note: There are [tags for each build date](https://hub.docker.com/r/tiangolo/uvicorn-gunicorn-fastapi/tags). If you need to "pin" the Docker image version you use, you can select one of those tags. E.g. `tiangolo/uvicorn-gunicorn-fastapi:python3.7-2019-10-15`.
-
-# uvicorn-gunicorn-fastapi
-
-[**Docker**](https://www.docker.com/) image with [**Uvicorn**](https://www.uvicorn.org/) managed by [**Gunicorn**](https://gunicorn.org/) for high-performance [**FastAPI**](https://fastapi.tiangolo.com/) web applications in **[Python](https://www.python.org/) 3.6 and above** with performance auto-tuning. Optionally in a slim version or based on Alpine Linux.
-
-**GitHub repo**: [https://github.com/tiangolo/uvicorn-gunicorn-fastapi-docker](https://github.com/tiangolo/uvicorn-gunicorn-fastapi-docker)
-
-**Docker Hub image**: [https://hub.docker.com/r/tiangolo/uvicorn-gunicorn-fastapi/](https://hub.docker.com/r/tiangolo/uvicorn-gunicorn-fastapi/)
-
-## Description
-
-**FastAPI** has shown to be a Python web framework with [one of the best performances, as measured by third-party benchmarks](https://www.techempower.com/benchmarks/#section=test&runid=a979de55-980d-4721-a46f-77298b3f3923&hw=ph&test=fortune&l=zijzen-7), thanks to being based on and powered by [**Starlette**](https://www.starlette.io/).
-
-The achievable performance is on par with (and in many cases superior to) **Go** and **Node.js** frameworks.
-
-This image has an "auto-tuning" mechanism included, so that you can just add your code and get that same **high performance** automatically. And without making sacrifices.
-
-## Technical Details
-
-### Uvicorn
-
-**Uvicorn** is a lightning-fast "ASGI" server.
-
-It runs asynchronous Python web code in a single process.
-
-### Gunicorn
-
-You can use **Gunicorn** to manage Uvicorn and run multiple of these concurrent processes.
-
-That way, you get the best of concurrency and parallelism.
-
-### FastAPI
-
-FastAPI is a modern, fast (high-performance), web framework for building APIs with Python 3.6+.
-
-The key features are:
-
-* **Fast**: Very high performance, on par with **NodeJS** and **Go** (thanks to Starlette and Pydantic).
-* **Fast to code**: Increase the speed to develop features by about 300% to 500% *.
-* **Less bugs**: Reduce about 40% of human (developer) induced errors. *
-* **Intuitive**: Great editor support. <abbr title="also known as auto-complete, autocompletion, IntelliSense">Completion</abbr> everywhere. Less time debugging.
-* **Easy**: Designed to be easy to use and learn. Less time reading docs.
-* **Short**: Minimize code duplication. Multiple features from each parameter declaration. Less bugs.
-* **Robust**: Get production-ready code. With automatic interactive documentation.
-* **Standards-based**: Based on (and fully compatible with) the open standards for APIs: <a href="https://github.com/OAI/OpenAPI-Specification" target="_blank">OpenAPI</a> (previously known as Swagger) and <a href="http://json-schema.org/" target="_blank">JSON Schema</a>.
-
-<small>* estimation based on tests on an internal development team, building production applications.</small>
-
-### `tiangolo/uvicorn-gunicorn-fastapi`
-
-This image will set a sensible configuration based on the server it is running on (the amount of CPU cores available) without making sacrifices.
-
-It has sensible defaults, but you can configure it with environment variables or override the configuration files.
-
-There is also a slim version and another one based on Alpine Linux. If you want one of those, use one of the tags from above.
-
-### `tiangolo/uvicorn-gunicorn`
-
-This image (`tiangolo/uvicorn-gunicorn-fastapi`) is based on [**tiangolo/uvicorn-gunicorn**](https://github.com/tiangolo/uvicorn-gunicorn-docker).
-
-That image is what actually does all the work.
-
-This image just installs FastAPI and has the documentation specifically targeted at FastAPI.
-
-If you feel confident about your knowledge of Uvicorn, Gunicorn and ASGI, you can use that image directly.
-
-### `tiangolo/uvicorn-gunicorn-starlette`
-
-There is a sibling Docker image: [**tiangolo/uvicorn-gunicorn-starlette**](https://github.com/tiangolo/uvicorn-gunicorn-starlette-docker)
-
-If you are creating a new [**Starlette**](https://www.starlette.io/) web application and you want to discard all the additional features from FastAPI you should use [**tiangolo/uvicorn-gunicorn-starlette**](https://github.com/tiangolo/uvicorn-gunicorn-starlette-docker) instead.
-
-**Note**: FastAPI is based on Starlette and adds several features on top of it. Useful for APIs and other cases: data validation, data conversion, documentation with OpenAPI, dependency injection, security/authentication and others.
-
-## How to use
-
-* You don't need to clone the GitHub repo. You can use this image as a base image for other images, using this in your `Dockerfile`:
-
-```Dockerfile
-FROM tiangolo/uvicorn-gunicorn-fastapi:python3.7
-
-COPY ./app /app
+```console
+$ sh ./scripts/test.sh
 ```
 
-It will expect a file at `/app/app/main.py`.
+The file `./scripts/test.sh` has the commands to generate a testing `docker-stack.yml` file, start the stack and test it.
 
-Or otherwise a file at `/app/main.py`.
+The tests run with Pytest, modify and add tests to `./backend/app/app/tests/`.
 
-And will expect it to contain a variable `app` with your FastAPI application.
+If you use GitLab CI the tests will run automatically.
 
-Then you can build your image from the directory that has your `Dockerfile`, e.g:
+### Local tests
+
+Start the stack with this command:
+
+```Bash
+DOMAIN=backend sh ./scripts/test-local.sh
+```
+The `./backend/app` directory is mounted as a "host volume" inside the docker container (set in the file `docker-compose.dev.volumes.yml`).
+You can rerun the test on live code:
+
+```Bash
+docker-compose exec backend /app/tests-start.sh
+```
+
+### Test running stack
+
+If your stack is already up and you just want to run the tests, you can use:
 
 ```bash
-docker build -t myimage ./
+docker-compose exec backend /app/tests-start.sh
 ```
 
-## Quick Start
+That `/app/tests-start.sh` script just calls `pytest` after making sure that the rest of the stack is running. If you need to pass extra arguments to `pytest`, you can pass them to that command and they will be forwarded.
 
-### Build your Image
-
-* Go to your project directory.
-* Create a `Dockerfile` with:
-
-```Dockerfile
-FROM tiangolo/uvicorn-gunicorn-fastapi:python3.7
-
-COPY ./app /app
-```
-
-* Create an `app` directory and enter in it.
-* Create a `main.py` file with:
-
-```Python
-from fastapi import FastAPI
-
-app = FastAPI()
-
-
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
-
-
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: str = None):
-    return {"item_id": item_id, "q": q}
-```
-
-* You should now have a directory structure like:
-
-```
-.
-├── app
-│   └── main.py
-└── Dockerfile
-```
-
-* Go to the project directory (in where your `Dockerfile` is, containing your `app` directory).
-* Build your FastAPI image:
+For example, to stop on first error:
 
 ```bash
-docker build -t myimage .
+docker-compose exec backend bash /app/tests-start.sh -x
 ```
 
-* Run a container based on your image:
+### Test Coverage
+
+Because the test scripts forward arguments to `pytest`, you can enable test coverage HTML report generation by passing `--cov-report=html`.
+
+To run the local tests with coverage HTML reports:
+
+```Bash
+sh ./scripts/test-local.sh --cov-report=html
+```
+
+To run the tests in a running stack with coverage HTML reports:
 
 ```bash
-docker run -d --name mycontainer -p 80:80 myimage
+docker-compose exec backend bash /app/tests-start.sh --cov-report=html
 ```
 
-Now you have an optimized FastAPI server in a Docker container. Auto-tuned for your current server (and number of CPU cores).
 
-### Check it
+# Get Started - Production
 
-You should be able to check it in your Docker container's URL, for example: <a href="http://192.168.99.100/items/5?q=somequery" target="_blank">http://192.168.99.100/items/5?q=somequery</a> or <a href="http://127.0.0.1/items/5?q=somequery" target="_blank">http://127.0.0.1/items/5?q=somequery</a> (or equivalent, using your Docker host).
+## Docker Compose for Production
 
-You will see something like:
-
-```JSON
-{"item_id": 5, "q": "somequery"}
+```console
+$ docker-compose -f docker-compose.prod.yml up -d
 ```
 
-### Interactive API docs
+## Custom Gunicorn configuration file
 
-Now you can go to <a href="http://192.168.99.100/docs" target="_blank">http://192.168.99.100/docs</a> or <a href="http://127.0.0.1/docs" target="_blank">http://127.0.0.1/docs</a> (or equivalent, using your Docker host).
+The image includes a default Gunicorn Python config file at `/gunicorn_conf.py`.
 
-You will see the automatic interactive API documentation (provided by <a href="https://github.com/swagger-api/swagger-ui" target="_blank">Swagger UI</a>):
+It uses the environment variables declared above to set all the configurations.
 
-![Swagger UI](https://fastapi.tiangolo.com/img/index/index-01-swagger-ui-simple.png)
+You can override it by including a file in:
 
-### Alternative API docs
+* `/app/gunicorn_conf.py`
+* `/app/app/gunicorn_conf.py`
+* `/gunicorn_conf.py`
 
-And you can also go to <a href="http://192.168.99.100/redoc" target="_blank">http://192.168.99.100/redoc</a> or <a href="http://127.0.0.1/redoc" target="_blank">http://127.0.0.1/redoc</a>(or equivalent, using your Docker host).
+## Custom `/app/prestart.sh`
 
-You will see the alternative automatic documentation (provided by <a href="https://github.com/Rebilly/ReDoc" target="_blank">ReDoc</a>):
+If you need to run anything before starting the app, you can add a file `prestart.sh` to the directory `/app`. The image will automatically detect and run it before starting everything.
 
-![ReDoc](https://fastapi.tiangolo.com/img/index/index-02-redoc-simple.png)
+For example, if you want to add Alembic SQL migrations (with SQLALchemy), you could create a `./app/prestart.sh` file in your code directory (that will be copied by your `Dockerfile`) with:
 
-## Dependencies and packages
+```bash
+#! /usr/bin/env bash
 
-You will probably also want to add any dependencies for your app and pin them to a specific version, probably including Uvicorn, Gunicorn, and FastAPI.
-
-This way you can make sure your app always works as expected.
-
-You could install packages with `pip` commands in your `Dockerfile`, using a `requirements.txt`, or even using [Poetry](https://python-poetry.org/).
-
-And then you can upgrade those dependencies in a controlled way, running your tests, making sure that everything works, but without breaking your production application if some new version is not compatible.
-
-### Using Poetry
-
-Here's a small example of one of the ways you could install your dependencies making sure you have a pinned version for each package.
-
-Let's say you have a project managed with [Poetry](https://python-poetry.org/), so, you have your package dependencies in a file `pyproject.toml`. And possibly a file `poetry.lock`.
-
-Then you could have a `Dockerfile` like:
-
-```Dockerfile
-FROM tiangolo/uvicorn-gunicorn-fastapi:python3.7
-
-# Install Poetry
-RUN curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | POETRY_HOME=/opt/poetry python && \
-    cd /usr/local/bin && \
-    ln -s /opt/poetry/bin/poetry && \
-    poetry config virtualenvs.create false
-
-# Copy using poetry.lock* in case it doesn't exist yet
-COPY ./app/pyproject.toml ./app/poetry.lock* /app/
-
-RUN poetry install --no-root --no-dev
-
-COPY ./app /app
+# Let the DB start
+sleep 10;
+# Run migrations
+alembic upgrade head
 ```
 
-That will:
+and it would wait 10 seconds to give the database some time to start and then run that `alembic` command.
 
-* Install poetry and configure it for running inside of the Docker container.
-* Copy your application requirements.
-    * Because it uses `./app/poetry.lock*` (ending with a `*`), it won't crash if that file is not available yet.
-* Install the dependencies.
-* Then copy your app code.
+If you need to run a Python script before starting the app, you could make the `/app/prestart.sh` file run your Python script, with something like:
 
-It's important to copy the app code *after* installing the dependencies, that way you can take advantage of Docker's cache. That way it won't have to install everything from scratch every time you update your application files, only when you add new dependencies.
+```bash
+#! /usr/bin/env bash
 
-This also applies for any other way you use to install your dependencies. If you use a `requirements.txt`, copy it alone and install all the dependencies on the top of the `Dockerfile`, and add your app code after it.
+# Run custom Python script before starting
+python /app/my_custom_prestart_script.py
+```
 
-## Advanced usage
+You can customize the location of the prestart script with the environment variable `PRE_START_PATH` described above.
 
-### Environment variables
+## Environment variables
 
 These are the environment variables that you can set in the container to configure it and their default values:
+
+- [`MODULE_NAME`](#module_name)
+- [`VARIABLE_NAME`](#variable_name)
+- [`APP_MODULE`](#app_module)
+- [`GUNICORN_CONF`](#gunicorn_conf)
+- [`WORKERS_PER_CORE`](#workers_per_core)
+- [`MAX_WORKERS`](#max_workers)
+- [`WEB_CONCURRENCY`](#web_concurrency)
+- [`HOST`](#host)
+- [`PORT`](#port)
+- [`BIND`](#bind)
+- [`LOG_LEVEL`](#log_level)
+- [`WORKER_CLASS`](#worker_class)
+- [`TIMEOUT`](#timeout)
+- [`KEEP_ALIVE`](#keep_alive)
+- [`GRACEFUL_TIMEOUT`](#graceful_timeout)
+- [`ACCESS_LOG`](#access_log)
+- [`ERROR_LOG`](#error_log)
+- [`GUNICORN_CMD_ARGS`](#gunicorn_cmd_args)
+- [`PRE_START_PATH`](#pre_start_path)
+
+<br/>
 
 #### `MODULE_NAME`
 
@@ -765,150 +675,6 @@ You can set it like:
 docker run -d -p 80:8080 -e PRE_START_PATH="/custom/script.sh" myimage
 ```
 
-### Custom Gunicorn configuration file
-
-The image includes a default Gunicorn Python config file at `/gunicorn_conf.py`.
-
-It uses the environment variables declared above to set all the configurations.
-
-You can override it by including a file in:
-
-* `/app/gunicorn_conf.py`
-* `/app/app/gunicorn_conf.py`
-* `/gunicorn_conf.py`
-
-### Custom `/app/prestart.sh`
-
-If you need to run anything before starting the app, you can add a file `prestart.sh` to the directory `/app`. The image will automatically detect and run it before starting everything.
-
-For example, if you want to add Alembic SQL migrations (with SQLALchemy), you could create a `./app/prestart.sh` file in your code directory (that will be copied by your `Dockerfile`) with:
-
-```bash
-#! /usr/bin/env bash
-
-# Let the DB start
-sleep 10;
-# Run migrations
-alembic upgrade head
-```
-
-and it would wait 10 seconds to give the database some time to start and then run that `alembic` command.
-
-If you need to run a Python script before starting the app, you could make the `/app/prestart.sh` file run your Python script, with something like:
-
-```bash
-#! /usr/bin/env bash
-
-# Run custom Python script before starting
-python /app/my_custom_prestart_script.py
-```
-
-You can customize the location of the prestart script with the environment variable `PRE_START_PATH` described above.
-
-### Development live reload
-
-The default program that is run is at `/start.sh`. It does everything described above.
-
-There's also a version for development with live auto-reload at:
-
-```bash
-/start-reload.sh
-```
-
-#### Details
-
-For development, it's useful to be able to mount the contents of the application code inside of the container as a Docker "host volume", to be able to change the code and test it live, without having to build the image every time.
-
-In that case, it's also useful to run the server with live auto-reload, so that it re-starts automatically at every code change.
-
-The additional script `/start-reload.sh` runs Uvicorn alone (without Gunicorn) and in a single process.
-
-It is ideal for development.
-
-#### Usage
-
-For example, instead of running:
-
-```bash
-docker run -d -p 80:80 myimage
-```
-
-You could run:
-
-```bash
-docker run -d -p 80:80 -v $(pwd):/app myimage /start-reload.sh
-```
-
-* `-v $(pwd):/app`: means that the directory `$(pwd)` should be mounted as a volume inside of the container at `/app`.
-    * `$(pwd)`: runs `pwd` ("print working directory") and puts it as part of the string.
-* `/start-reload.sh`: adding something (like `/start-reload.sh`) at the end of the command, replaces the default "command" with this one. In this case, it replaces the default (`/start.sh`) with the development alternative `/start-reload.sh`.
-
-#### Development live reload - Technical Details
-
-As `/start-reload.sh` doesn't run with Gunicorn, any of the configurations you put in a `gunicorn_conf.py` file won't apply.
-
-But these environment variables will work the same as described above:
-
-* `MODULE_NAME`
-* `VARIABLE_NAME`
-* `APP_MODULE`
-* `HOST`
-* `PORT`
-* `LOG_LEVEL`
-
-## Tests
-
-All the image tags, configurations, environment variables and application options are tested.
-
-## Release Notes
-
-### Latest Changes
-
-* 👷 Add latest-changes GitHub action, update issue-manager, add funding. PR [#70](https://github.com/tiangolo/uvicorn-gunicorn-fastapi-docker/pull/70) by [@tiangolo](https://github.com/tiangolo).
-### 0.6.0
-
-* Add docs about installing and pinning dependencies. PR [#41](https://github.com/tiangolo/uvicorn-gunicorn-fastapi-docker/pull/41).
-* Add `slim` version. PR [#40](https://github.com/tiangolo/uvicorn-gunicorn-fastapi-docker/pull/40).
-* Update and refactor bringing all the new features from the base image. Includes:
-    * Centralize, simplify, and deduplicate code and setup
-    * Move CI to GitHub actions
-    * Add Python 3.8 (and Alpine)
-    * Add new configs and docs:
-        * `WORKER_CLASS`
-        * `TIMEOUT`
-        * `KEEP_ALIVE`
-        * `GRACEFUL_TIMEOUT`
-        * `ACCESS_LOG`
-        * `ERROR_LOG`
-        * `GUNICORN_CMD_ARGS`
-        * `MAX_WORKERS`
-    * PR [#39](https://github.com/tiangolo/uvicorn-gunicorn-fastapi-docker/pull/39).
-* Disable pip cache during installation. PR [#38](https://github.com/tiangolo/uvicorn-gunicorn-fastapi-docker/pull/38).
-* Migrate local development from Pipenv to Poetry. PR [#34](https://github.com/tiangolo/uvicorn-gunicorn-fastapi-docker/pull/34).
-* Add docs for custom `PRE_START_PATH` env var. PR [#33](https://github.com/tiangolo/uvicorn-gunicorn-fastapi-docker/pull/33).
-
-### 0.5.0
-
-* Refactor tests to use env vars and add image tags for each build date, like `tiangolo/uvicorn-gunicorn-fastapi:python3.7-2019-10-15`. PR [#17](https://github.com/tiangolo/uvicorn-gunicorn-fastapi-docker/pull/17).
-* Upgrade Travis. PR [#9](https://github.com/tiangolo/uvicorn-gunicorn-fastapi-docker/pull/9).
-
-### 0.4.0
-
-* Add support for live auto-reload with an additional custom script `/start-reload.sh`, check the [updated documentation](https://github.com/tiangolo/uvicorn-gunicorn-fastapi-docker#development-live-reload). PR <a href="https://github.com/tiangolo/uvicorn-gunicorn-docker/pull/6" target="_blank">#6</a> in parent image.
-
-### 0.3.0
-
-* Set `WORKERS_PER_CORE` by default to `1`, as it shows to have the best performance on benchmarks.
-* Make the default web concurrency, when `WEB_CONCURRENCY` is not set, to a minimum of 2 workers. This is to avoid bad performance and blocking applications (server application) on small machines (server machine/cloud/etc). This can be overridden using `WEB_CONCURRENCY`. This applies for example in the case where `WORKERS_PER_CORE` is set to `1` (the default) and the server has only 1 CPU core. PR <a href="https://github.com/tiangolo/uvicorn-gunicorn-fastapi-docker/pull/6" target="_blank">#6</a> and PR <a href="https://github.com/tiangolo/uvicorn-gunicorn-docker/pull/5" target="_blank">#5</a> in parent image.
-
-### 0.2.0
-
-* Make `/start.sh` run independently, reading and generating used default environment variables. And remove `/entrypoint.sh` as it doesn't modify anything in the system, only reads environment variables. PR <a href="https://github.com/tiangolo/uvicorn-gunicorn-docker/pull/4" target="_blank">#4</a> in parent image.
-
-### 0.1.0
-
-* Add support for `/app/prestart.sh`.
-
-## License
+# License
 
 This project is licensed under the terms of the MIT license.
