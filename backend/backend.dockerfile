@@ -1,4 +1,4 @@
-FROM python:3.9
+FROM python:3.8
 
 LABEL maintainer="Sebastien Mascha <sebastien.mascha@gmail.com>"
 
@@ -26,8 +26,8 @@ COPY ./app/pyproject.toml ./app/poetry.lock* /app/
 # virtualenv creation is not needed in docker (already isolated).
 # --no-interaction not to ask any interactive questions
 # --no-ansi flag to make your output more log friendly
-RUN poetry config virtualenvs.create false \
-  && poetry install $(test "$YOUR_ENV" == production && echo "--no-dev") --no-interaction --no-ansi
+RUN poetry config virtualenvs.create false
+RUN poetry install $(test "$YOUR_ENV" == "production" && echo "--no-dev") --no-interaction --no-ansi
 
 # Starter scripts
 COPY ./start.sh /start.sh
