@@ -7,8 +7,9 @@ services:
     build:
       context: ./backend
       dockerfile: backend.dockerfile
+      target: production
       args:
-        YOUR_ENV: 'production'
+        POETRY_VERSION: 1.1.5
     env_file:
       - ./backend/.env
       - ./backend/.env_production
